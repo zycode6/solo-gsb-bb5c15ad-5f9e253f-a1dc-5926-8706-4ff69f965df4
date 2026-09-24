@@ -6,6 +6,7 @@ import RulesPage from './pages/RulesPage.jsx'
 import QualityPage from './pages/QualityPage.jsx'
 import SpeakersPage from './pages/SpeakersPage.jsx'
 import ExcerptsPage from './pages/ExcerptsPage.jsx'
+import PublicTranscriptPage from './pages/PublicTranscriptPage.jsx'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/projects/:id/quality" element={<QualityPage />} />
           <Route path="/projects/:id/speakers" element={<SpeakersPage />} />
           <Route path="/projects/:id/excerpts" element={<ExcerptsPage />} />
+          <Route path="/projects/:id/public" element={<PublicTranscriptPage />} />
           <Route path="/merge" element={<MergePage />} />
         </Routes>
       </main>

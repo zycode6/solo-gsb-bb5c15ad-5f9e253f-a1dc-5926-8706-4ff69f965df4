@@ -27,7 +27,12 @@
 允许重叠），预览时自动合并相交或首尾相接的区间，只收录完整落在合并区间内
 的转写片段，跨界片段整段列为排除项（绝不截取片段全文充作摘录），校注按边界
 裁剪、跨越多个不相连区间时拆成多条并保留原校注 ID 作为来源标识；确认后下载
-只读 JSON，原项目不会被修改。
+只读 JSON，原项目不会被修改。项目编辑页还提供**公开版转写**：输入多条敏感词
+与需匿名的说话人，即可基于**当前已保存**的转写生成可对外公开的版本——敏感词
+匹配忽略空白、可跨时间相接且说话人相同的片段（遇空隙、重叠或换人即断开），
+命中的非空白字符按原字符位置替换为方块（重叠命中只遮盖一次，原空白、片段
+ID、起止时间与分段全部保留），选中的说话人替换为预览与下载一致的匿名编号；
+确认后下载只含片段的 JSON，原项目不会被修改。
 
 - 前端：React 18 + Vite（纯 CSS，无 UI 框架依赖）
 - 后端：FastAPI（Python 3.11）
@@ -50,7 +55,9 @@ docker compose up -d --build
 
 在首页打开任一项目即进入项目编辑页（`/projects/{id}`），时间轴下方依次是
 「发言时长」「接话关系」与「引语检索」面板，顶部操作区有「📦 摘录包」入口
-（`/projects/{id}/excerpts`，即 **http://localhost:8000/projects/{id}/excerpts**）；
+（`/projects/{id}/excerpts`，即 **http://localhost:8000/projects/{id}/excerpts**）
+与「🛡️ 公开版转写」入口（`/projects/{id}/public`，即
+**http://localhost:8000/projects/{id}/public**）；
 更换访问端口只需调整 Compose / `-p` 端口映射（容器内固定监听 8000）。
 
 停止：
@@ -395,6 +402,38 @@ JSON 消费方）。重新导入导出的 JSON 时，这些校注按普通校注
    （含合并来源、收录片段、裁剪校注、区间内排除项）、去重排除项汇总
    与统计信息；服务端不写库，**原项目保持不变**。
 
+### 11. 公开版转写
+
+在项目编辑页点击「🛡️ 公开版转写」进入公开版转写页面，路由
+`/projects/{id}/public`，访问地址
+**http://localhost:8000/projects/{id}/public**（端口随 Compose /
+`-p` 映射调整，容器内固定 8000）。公开版转写是**只读导出**，基于
+**当前已保存**的转写（编辑页未保存的修改不包含在内），不会修改原项目。
+
+1. **输入多条敏感词**：行数不限，空白行自动忽略；可勾选「区分大小写」
+   （默认不区分）。匹配**忽略空白**——敏感词与片段文本中的所有空白字符
+   都不参与匹配，`后来 2003 年` 可被敏感词 `后来2003年` 命中；命中可
+   **跨越多个时间相接**（上一片段 `end` = 下一片段 `start`）**且说话人
+   相同（非空）的片段**，片段间有空隙、重叠或说话人切换时匹配链断开，
+   不会把跨说话人的文字连成一次命中。
+2. **遮盖规则**：每次命中的**非空白字符**按原字符位置替换为方块 `■`，
+   原文空白原样保留（文本长度与排版不变）；不同敏感词（或同一敏感词的
+   不同出现位置）的命中重叠时，同一字符**只遮盖一次**。片段 ID、起止
+   时间与分段划分全部保留。
+3. **选择需匿名的说话人**：点击「现有说话人」名称或手动输入添加；选中
+   的说话人在公开版中替换为 `说话人 1`、`说话人 2`……编号按其在已保存
+   转写中**首次出现的顺序**分配（选中但未出现的名称按输入顺序递补），
+   **预览与下载使用同一份编号**；未选中的说话人名称原样保留。
+4. **预览**：统计条展示片段数、敏感词命中次数、遮盖字符数、被遮盖片段数
+   与匿名说话人 / 片段数；下方列出每个敏感词的命中次数、原说话人 →
+   匿名编号对照表，以及完整公开版片段（被遮盖字符黄色高亮、匿名说话人
+   标注原名称）。修改输入后预览标记为过期，需重新生成预览才能下载。
+5. **确认后下载 JSON**：「⬇️ 确认并下载公开版 JSON」返回附件形式的
+   JSON（文件名 `{项目名}-公开版转写.json`），**只含转写片段**——每个
+   片段只有 `id`、`start`、`end`、`speaker`（匿名后）、`text`（遮盖后）
+   五个字段；不含校注、原说话人姓名与敏感词原文，服务端不写库，
+   **原项目保持不变**。
+
 ---
 
 ## 合并规则说明
@@ -448,6 +487,8 @@ JSON 消费方）。重新导入导出的 JSON 时，这些校注按普通校注
 | POST | `/api/projects/{id}/speaker-rename` | 说话人归一提交：一次事务改写片段 / 校注 / 规则三处说话人字段 |
 | POST | `/api/projects/{id}/excerpts/preview` | 摘录包预览：合并区间，收录完整片段、裁剪校注、列出排除项（只读） |
 | POST | `/api/projects/{id}/excerpts/download` | 同内容以附件 JSON 下载摘录包（不写库，原项目不变） |
+| POST | `/api/projects/{id}/public-transcript/preview` | 公开版转写预览：敏感词遮盖 + 说话人匿名编号（只读，基于已保存转写） |
+| POST | `/api/projects/{id}/public-transcript/download` | 下载只含片段的公开版 JSON（附件；不写库，原项目不变） |
 | POST | `/api/projects/{id}/quality-check` | 校注质检（越界 / 重叠 / 说话人不一致），结果自动存入扫描历史，见下 |
 | GET | `/api/projects/{id}/quality-scans` | 项目的扫描历史（时间倒序，含窗口 / 统计，不含问题明细） |
 | GET | `/api/projects/{id}/quality-scans/{scanId}` | 读取某次扫描的完整问题快照 |
@@ -656,6 +697,72 @@ JSON 消费方）。重新导入导出的 JSON 时，这些校注按普通校注
 `crosses_end`（片段终于区间结束之后）、`crosses_both`（两侧都伸出）、
 `crosses_gap`（跨界多个不相连合并区间，仅出现在去重汇总中）。
 
+### `POST /api/projects/{id}/public-transcript/preview` 与 `…/public-transcript/download`
+
+公开版转写。两个端点请求体相同，始终作用于**已保存**的项目文档（只读、
+不写库）；`download` 额外以 `Content-Disposition: attachment`（文件名
+`{项目名}-公开版转写.json`）返回**只含片段**的公开版 JSON：
+
+```json
+{
+  "sensitiveWords": ["后来改制", "李明"],
+  "anonymizeSpeakers": ["李明", "王主任"],
+  "caseSensitive": false
+}
+```
+
+- `sensitiveWords`：多条敏感词；匹配忽略所有 Unicode 空白（词内空白同样
+  忽略），可跨时间相接、说话人相同（非空）的片段，遇空隙 / 重叠 / 换人
+  即断开；空白行与重复词自动忽略；
+- `anonymizeSpeakers`：需匿名的说话人（精确名称，忽略首尾空白）；匿名
+  编号 `说话人 1`、`说话人 2`……按其在已保存转写中首次出现的顺序分配，
+  预览与下载一致；
+- `caseSensitive` 默认 `false`；
+- 列表类型错误为 **422**；项目不存在为 **404**。
+
+`preview` 返回（每个片段带 `maskedRanges` 半开字符区间供逐字高亮，
+`speakers` 给出原名称 → 匿名编号对照与涉及片段数）：
+
+```json
+{
+  "projectId": "proj-…",
+  "projectName": "访谈A",
+  "generatedAt": "2026-09-24T10:00:00+00:00",
+  "sensitiveWords": ["后来改制"],
+  "words": [{"word": "后来改制", "count": 2}],
+  "speakers": [
+    {"original": "李明", "alias": "说话人 1",
+     "segmentCount": 3, "appears": true}
+  ],
+  "summary": {"segmentCount": 5, "hitCount": 2, "maskedSegmentCount": 2,
+              "maskedCharCount": 8, "anonymizedSpeakerCount": 1,
+              "anonymizedSegmentCount": 3},
+  "segments": [
+    {"id": "seg-1", "start": 0.0, "end": 4.5, "speaker": "说话人 1",
+     "text": "■■■■，当时", "masked": true, "maskedChars": 4,
+     "maskedRanges": [[0, 4]], "anonymized": true}
+  ]
+}
+```
+
+`download` 的响应体只含公开字段——每个片段仅 `id`、`start`、`end`、
+`speaker`（匿名后）、`text`（遮盖后），不含校注、原说话人姓名与敏感词
+原文：
+
+```json
+{
+  "kind": "public-transcript",
+  "projectId": "proj-…",
+  "projectName": "访谈A",
+  "generatedAt": "2026-09-24T10:00:00+00:00",
+  "segmentCount": 5,
+  "segments": [
+    {"id": "seg-1", "start": 0.0, "end": 4.5,
+     "speaker": "说话人 1", "text": "■■■■，当时"}
+  ]
+}
+```
+
 ### `POST /api/projects/{id}/quality-check`
 
 对**已保存**的项目文档做质检。请求体可省略（或为 `{}`），表示整条转写；
@@ -788,7 +895,7 @@ npm run dev
 cd backend
 python -m pytest test_merge.py test_rules_api.py test_quality.py \
   test_quality_api.py test_quality_scans_api.py test_quotes_api.py \
-  test_speakers_api.py test_excerpts_api.py -q
+  test_speakers_api.py test_excerpts_api.py test_public_transcript_api.py -q
 ```
 
 运行前端算法单测（发言时长扫描线与接话关系判定，Node 内置测试运行器，
@@ -825,7 +932,14 @@ TestClient）；**质检引擎**另有 16 个扫描线算法单测（越界首�
 片段跨越多个不相连区间的 `crosses_gap` 去重汇总、校注按边界裁剪、
 校注跨多区间拆分为带来源 ID 与 `sourcePart` 标记的多条、端点相接不
 产生校注、空 / 负数 / 反向区间的 400 与 422 拦截、下载附件响应头与
-项目文档不被修改、未知项目 404。**接话关系与发言时长**前端单测
+项目文档不被修改、未知项目 404。**公开版转写**用例
+（`test_public_transcript_api.py`）覆盖跨时间相接同说话人片段命中、
+忽略敏感词与文本中的空白、命中字符按原位置替换为方块且原空白保留、
+空隙 / 重叠 / 说话人切换断链、重叠命中只遮盖一次（命中次数与遮盖
+字符数分别统计）、区分大小写选项、说话人匿名编号按首次出现顺序分配
+且重复构建一致、片段 ID / 起止时间 / 分段保留且原文档不被修改、
+下载体只含片段五个公开字段（无校注 / 原说话人姓名 / 敏感词原文）、
+空输入透传、非法输入的 400 / 422 与未知项目 404。**接话关系与发言时长**前端单测
 （`frontend/src/turnTaking.test.js`，`npm test`）覆盖发言时长统计的
 回归用例（自身重叠 / 相接片段合并、同讲按人累计、全体同时发言）与
 接话判定（相接独讲零静默、静默阈值边界、仅两人同讲记插话、第三人或
@@ -847,6 +961,7 @@ TestClient）；**质检引擎**另有 16 个扫描线算法单测（越界首�
 │   │   ├── quality.py       # 质检扫描线：越界 / 重叠 / 说话人不一致
 │   │   ├── quotes.py        # 引语检索：同说话人相接片段链接、忽略空白与逐字映射
 │   │   ├── excerpts.py      # 摘录包：区间合并、完整片段收录、校注裁剪 / 拆分与来源标识
+│   │   ├── redact.py        # 公开版转写：敏感词逐字遮盖（跨相接同说话人片段）与说话人匿名编号
 │   │   ├── speakers.py      # 说话人归一：名称汇总、链式映射归并与循环检测
 │   │   ├── importer.py      # 转写稿解析（纯文本 / JSON）
 │   │   ├── db.py            # SQLite 持久化（项目 / 规则 / 应用记录 / 质检扫描历史 / 说话人归一事务）
@@ -858,11 +973,12 @@ TestClient）；**质检引擎**另有 16 个扫描线算法单测（越界首�
 │   ├── test_quality_scans_api.py  # 质检扫描历史与两次扫描对比 API 测试
 │   ├── test_quotes_api.py   # 引语检索引擎与 API 测试
 │   ├── test_excerpts_api.py # 摘录包引擎与 API 测试（区间合并 / 排除 / 校注拆分）
+│   ├── test_public_transcript_api.py  # 公开版转写引擎与 API 测试（遮盖 / 匿名 / 只含片段下载）
 │   ├── test_speakers_api.py # 说话人归一引擎与 API 测试（含事务回滚）
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/           # 项目列表 / 编辑器 / 三方合并 / 规则标注 / 质检 / 说话人归一 / 摘录包
+│   │   ├── pages/           # 项目列表 / 编辑器 / 三方合并 / 规则标注 / 质检 / 说话人归一 / 摘录包 / 公开版转写
 │   │   ├── components/      # 时间轴、标注弹窗、片段表、冲突裁决卡、引语检索、发言时长、接话关系
 │   │   ├── api.js  utils.js  speakingTime.js  turnTaking.js  styles.css
 │   │   └── turnTaking.test.js  # 发言时长扫描线回归 + 接话关系判定单测（node --test）

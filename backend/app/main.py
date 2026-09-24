@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import db, excerpts, importer, quality, quotes, rules, speakers
+from . import db, excerpts, importer, quality, quotes, redact, rules, speakers
 from .merge import merge_documents
 from .schemas import (
     DocumentIn,
@@ -17,6 +17,7 @@ from .schemas import (
     MergeRequest,
     ProjectIn,
     ProjectUpdate,
+    PublicTranscriptRequest,
     QualityCheckRequest,
     QualityScanCompareRequest,
     QuoteSearchRequest,
@@ -283,6 +284,50 @@ def excerpts_download(project_id: str, payload: ExcerptRequest):
         headers={
             "Content-Disposition":
                 f"attachment; filename=excerpt-package.json; filename*=UTF-8''{fname}"
+        },
+    )
+
+
+# ---------- public transcript (公开版转写) ----------
+
+def _public_transcript_payload(project: dict,
+                               payload: PublicTranscriptRequest) -> dict:
+    """Build a read-only public transcript; the saved project is untouched."""
+    try:
+        result = redact.build_public_transcript(
+            project["document"],
+            payload.sensitiveWords,
+            payload.anonymizeSpeakers,
+            payload.caseSensitive,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    result["projectId"] = project["id"]
+    result["projectName"] = project["name"]
+    return result
+
+
+@app.post("/api/projects/{project_id}/public-transcript/preview")
+def public_transcript_preview(project_id: str,
+                              payload: PublicTranscriptRequest) -> dict:
+    """Preview the public transcript: masked text, aliases and statistics."""
+    return _public_transcript_payload(_get_or_404(project_id), payload)
+
+
+@app.post("/api/projects/{project_id}/public-transcript/download")
+def public_transcript_download(project_id: str, payload: PublicTranscriptRequest):
+    """Download the segments-only public transcript as an attachment JSON."""
+    from urllib.parse import quote
+
+    result = _public_transcript_payload(_get_or_404(project_id), payload)
+    fname = quote(f"{result['projectName']}-公开版转写.json")
+    return JSONResponse(
+        content=redact.public_document(result),
+        media_type="application/json",
+        headers={
+            "Content-Disposition":
+                f"attachment; filename=public-transcript.json; "
+                f"filename*=UTF-8''{fname}"
         },
     )
 

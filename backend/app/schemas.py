@@ -114,3 +114,17 @@ class TimeRangeIn(BaseModel):
 class ExcerptRequest(BaseModel):
     """A set of (unordered, possibly overlapping) ranges for an excerpt pack."""
     ranges: list[TimeRangeIn] = Field(min_length=1)
+
+
+# ---------- public transcript (公开版转写) ----------
+
+class PublicTranscriptRequest(BaseModel):
+    """Sensitive words + speakers to anonymize for a public transcript.
+
+    Always applied to the project's *saved* document; blank entries are
+    ignored server-side and both lists may be empty (the transcript then
+    passes through unmasked / non-anonymized).
+    """
+    sensitiveWords: list[str] = []
+    anonymizeSpeakers: list[str] = []
+    caseSensitive: bool = False
