@@ -268,6 +268,9 @@ export default function EditorPage() {
           <Link className="btn" to={`/projects/${id}/excerpts`}>
             📦 摘录包
           </Link>
+          <Link className="btn" to={`/projects/${id}/public-transcript`}>
+            🔓 公开版转写
+          </Link>
           <button className="btn" onClick={() => importRef.current?.click()}>
             导入转写
           </button>

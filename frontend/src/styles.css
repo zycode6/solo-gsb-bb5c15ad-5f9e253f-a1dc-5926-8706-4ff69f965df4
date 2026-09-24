@@ -741,3 +741,46 @@ code {
 .exc-reason { margin-top: 4px; font-size: 12px; color: #8f2f2f; }
 .exc-interval-ref { margin: 2px 0 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .exc-summary .stat-box span { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- public transcript (公开版转写) ---------- */
+.pub-words {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #fcfdff;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+.pub-speakers-head { margin-top: 16px; }
+.pub-speaker-picker { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
+.pub-speaker-chip {
+  border: 1px solid var(--border);
+  background: #fcfdff;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pub-speaker-chip:hover { border-color: var(--primary); }
+.pub-speaker-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.pub-summary .stat-box span {
+  font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.pub-anon-map h4 { margin: 14px 0 6px; }
+.pub-anon-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.pub-anon-tag { margin: 0; font-size: 12px; }
+.pub-seg-list { margin: 6px 0 0; }
+.pub-seg-text { font-size: 14px; line-height: 1.7; }
+.pub-mask {
+  background: #fde2df;
+  color: #b23b2e;
+  border-radius: 3px;
+  padding: 0 1px;
+}

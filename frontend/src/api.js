@@ -112,4 +112,14 @@ export const api = {
     }),
   excerptsDownloadUrl: (projectId) =>
     `${BASE}/projects/${projectId}/excerpts/download`,
+
+  // ----- public transcript (公开版转写) -----
+  previewPublicTranscript: (projectId,
+    { sensitiveWords, speakers, caseSensitive = false }) =>
+    request(`/projects/${projectId}/public-transcript/preview`, {
+      method: 'POST',
+      body: JSON.stringify({ sensitiveWords, speakers, caseSensitive }),
+    }),
+  publicTranscriptDownloadUrl: (projectId) =>
+    `${BASE}/projects/${projectId}/public-transcript/download`,
 };

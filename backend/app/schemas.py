@@ -114,3 +114,18 @@ class TimeRangeIn(BaseModel):
 class ExcerptRequest(BaseModel):
     """A set of (unordered, possibly overlapping) ranges for an excerpt pack."""
     ranges: list[TimeRangeIn] = Field(min_length=1)
+
+
+# ---------- public transcript (公开版转写) ----------
+
+class PublicTranscriptRequest(BaseModel):
+    """Sensitive words + speakers to anonymize for a read-only public copy.
+
+    Whitespace inside ``sensitiveWords`` is ignored when matching; words may
+    span time-touching segments with the same speaker. ``speakers`` lists the
+    exact speaker names replaced by consistent anonymous numbers. The engine
+    runs against the saved project document only.
+    """
+    sensitiveWords: list[str] = []
+    speakers: list[str] = []
+    caseSensitive: bool = False
